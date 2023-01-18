@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 from enum import Enum
 from sqlmodel import Field, Relationship, SQLModel
 from pydantic import EmailStr

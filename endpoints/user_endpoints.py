@@ -103,7 +103,6 @@ async def get_borrowers():
         borrowers = session.exec(statement).all()
         res = []
         ress = {}
-        print(borrowers)
         for borrower in borrowers:
             ress['fullName'] = borrower.borrowers.user.username
             ress['title'] = borrower.title
