@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from endpoints.user_endpoints import user_router
+# from endpoints.user_endpoints import user_router
+from user.views import user_router
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 

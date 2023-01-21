@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from database import engine
-from models import User, Borrower
+from user.models import User
 
 
 async def select_all_users():
@@ -20,8 +20,8 @@ async def find_user(name):
         statement = select(User).where(User.username == name)
         return session.exec(statement).first()
     
-async def find_borrower(user_id):
-    with Session(engine) as session:
-        statement = select(Borrower).where(Borrower.user_id == user_id)
-        res = session.exec(statement).first()
-        return res
+# async def find_borrower(user_id):
+#     with Session(engine) as session:
+#         statement = select(Borrower).where(Borrower.user_id == user_id)
+#         res = session.exec(statement).first()
+#         return res
