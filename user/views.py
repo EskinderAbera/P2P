@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from database import engine
+from database import engine, session
 from sqlmodel import Session, select
 from .models import *
 from starlette.responses import JSONResponse
@@ -8,7 +8,6 @@ from .repos import *
 from auth.auth import AuthHandler
 from borrower.models import Borrower
 from lender.models import Lender
-from typing import List
 
 user_router = APIRouter()
 auth_handler = AuthHandler()
@@ -76,9 +75,15 @@ async def activate_user(user: UserActivate):
         session.commit()
         return JSONResponse("success", status_code=200)
 
-@user_router.get('/user/users', response_model=List[User])
+@user_router.get('/user/users', response_model=List[UserRead])
 async def all_user():
     users = await select_all_users()
     return users
+
+
+@user_router.get('/user/{id}', response_model = UserDetail)
+async def get_user(id: int):
+    user = session.get(User, id)
+    return user
                 
     

@@ -45,13 +45,6 @@ async def select_borrower(user):
 
 async def borrower_status(id):
     with Session(engine) as session:
-        statement = select(Borrower).where(Borrower.user_id == id)
+        statement = select(User).where(User.id == id)
         borrower = session.exec(statement).first()
-        res = []
-        if borrower.profile_status != 100:
-            for key, value in borrower:
-                if value == None:
-                    res.append(key)
-            # session.commit()
-            # session.refresh(borrower.user)
-            return res
+        return borrower

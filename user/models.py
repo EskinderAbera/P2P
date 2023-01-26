@@ -1,12 +1,12 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 from enum import Enum
 from sqlmodel import Field, Relationship, SQLModel
 from pydantic import EmailStr
 from sqlalchemy import UniqueConstraint
 
-if TYPE_CHECKING:
-    from borrower.models import Borrower
-    from lender.models import Lender
+# if TYPE_CHECKING:
+from borrower.models import Borrower, BorrowerRead
+from lender.models import Lender, LenderRead
 
 class GenderType(str, Enum):
     male="male"
@@ -50,3 +50,19 @@ class UserLogin(SQLModel):
 class UserActivate(SQLModel):
     isActive: bool
     username: str
+    
+class UserRead(SQLModel):
+    id: Optional[int]
+    fullName: Optional[str]
+    gender: Optional[GenderType]
+    userType: Optional[UserType]
+    email: Optional[EmailStr]
+    isActive: Optional[bool]
+    phone_number: str
+    username: Optional[str]
+    motherName: Optional[str]
+
+class UserDetail(UserRead):
+    id: Optional[int]
+    borrower: List[BorrowerRead]
+    lender: List[LenderRead]

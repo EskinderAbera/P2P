@@ -11,3 +11,6 @@ class LenderBase(SQLModel):
 class Lender(LenderBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user:  Optional["User"] = Relationship(back_populates="lender")
+    
+class LenderRead(LenderBase):
+    id: Optional[int]
