@@ -1,8 +1,7 @@
 from sqlmodel import SQLModel, create_engine, Session
-from user.models import User
-from borrower.models import Borrower
-from lender.models import Lender
-from internaluser.models import InternalUser
+from models.borrower_models import Borrower
+from models.lender_models import Lender
+from models.loan_models import LoanType, Amount, InterestRate
 
 DB_FILE = 'db.sqlite3'
 engine = create_engine(f"sqlite:///{DB_FILE}", echo=True)

@@ -1,15 +1,79 @@
-# from fastapi import APIRouter, HTTPException
-# from database import engine
-# from sqlmodel import Session, select
-# from models import User, UserCreate, UserType, Borrower, Lender, UserRegister, UserLogin, LoanWrite, Loan
-# from starlette.responses import JSONResponse
-# from starlette.status import HTTP_201_CREATED, HTTP_409_CONFLICT
-# from repos.user_repos import select_all_users, select_user, find_user
-# from auth.auth import AuthHandler
+from fastapi import APIRouter, HTTPException
+from database import session
+from sqlmodel import select
+from models.borrower_models import CustomerCreate, Borrower, CustomerRegister
+from models.lender_models import Lender
+from starlette.responses import JSONResponse
+from starlette.status import HTTP_201_CREATED, HTTP_409_CONFLICT
+from repos.customer_repos import select_borrower, select_borrowers, select_lenders, select_lender
+from auth.auth import AuthHandler
 
-# user_router = APIRouter()
-# auth_handler = AuthHandler()
+customer_router = APIRouter()
+auth_handler = AuthHandler()
 
+
+@customer_router.post('/customer/create/')
+async def customer_create(customer: CustomerCreate):
+    if customer.customer_type == 'BORROWER':
+        statement = select(Borrower).where(Borrower.phone_number == customer.phone_number)
+        get_user = session.execute(statement).first()
+        
+        if not get_user:
+            new_borrower = Borrower(phone_number=customer.phone_number, customer_type=customer.customer_type)
+            session.add(new_borrower)
+            session.commit()
+            return JSONResponse('success', status_code = 200)
+        else:
+           return JSONResponse("user already exist!", status_code=HTTP_409_CONFLICT)
+       
+    else: 
+        statement = select(Lender).where(Lender.phone_number == customer.phone_number)
+        get_user = session.execute(statement).first()
+        
+        if not get_user:
+            new_lender = Lender(phone_number=customer.phone_number, customer_type=customer.customer_type)
+            session.add(new_lender)
+            session.commit()
+            return JSONResponse('success', status_code = 200)
+        else:
+            return JSONResponse("user already exist!", status_code=HTTP_409_CONFLICT) 
+        
+
+@customer_router.put('/borrower/register/')
+async def borrower_register(customer: CustomerRegister):
+    borrowers = await select_borrowers()
+    
+    if any(borrower.username == customer.username or borrower.email == customer.email for borrower in borrowers):
+        raise HTTPException(status_code=400, detail="email and username must be unique")
+    borrower = await select_borrower(customer.phone_number)
+    hashed_pwd = auth_handler.get_password_hash(customer.password)
+    for key, value in update_borrower.items():
+        setattr(borrower, key, value)
+    update_borrower = customer.dict(exclude_unset=True)
+    borrower.password = hashed_pwd
+    session.add(borrower)
+    session.commit()
+    return JSONResponse("success", status_code=HTTP_201_CREATED)
+
+@customer_router.put('/lender/register/')
+async def lender_register(customer: CustomerRegister):
+    lenders = await select_lenders()
+    
+    if any(lender.username == customer.username or lender.email == customer.email for lender in lenders):
+        raise HTTPException(status_code=400, detail="email and username must be unique")
+    lender = await select_lender(customer.phone_number)
+    update_lender = customer.dict(exclude_unset=True)
+    for key, value in update_lender.items():
+        setattr(lender, key, value)
+    hashed_pwd = auth_handler.get_password_hash(customer.password)
+    lender.password = hashed_pwd
+    session.add(lender)
+    session.commit()
+    return JSONResponse("success", status_code=HTTP_201_CREATED)
+
+
+        
+    
 # @user_router.post('/user/userCreate/')
 # async def userCreate(user: UserCreate):
 #     with Session(engine) as session:
