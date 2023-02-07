@@ -27,6 +27,18 @@ async def select_lenders():
         statement = select(Lender)
         res = session.exec(statement).all()
         return res
+    
+async def select_customers(customer):
+    borrowers = await select_borrowers()
+    lenders = await select_lenders()
+    
+    if any(lender.username == customer.username for lender in lenders):
+        return {"userType": "LENDER"}
+    
+    elif any(borrower.username == customer.username for borrower in borrowers):
+        return {"userType": "BORROWER"}
+    else: 
+        return {"userType": "wrong"}
 
 # async def select_all_users():
 #     with Session(engine) as session:

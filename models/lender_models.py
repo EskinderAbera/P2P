@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field
 from typing import Optional
 from models.borrower_models import CustomerBase
 

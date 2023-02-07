@@ -21,7 +21,8 @@ class Status(str, Enum):
 class InterestBase(SQLModel):
     min: float = 0.0
     max: float = 0.0
-       
+    loantype_id: Optional[int] = Field(default=None, foreign_key="loantype.id")
+    
 class InterestRate(InterestBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     loantypes: Optional["LoanType"] = Relationship(sa_relationship_kwargs={'uselist': False}, back_populates="interestrate")
@@ -29,6 +30,7 @@ class InterestRate(InterestBase, table=True):
 class AmountBase(SQLModel):
     min: float = 0.0
     max: float = 0.0
+    loantype_id: Optional[int] = Field(default=None, foreign_key="loantype.id")
     
 class Amount(AmountBase, table = True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -36,8 +38,6 @@ class Amount(AmountBase, table = True):
     
 class LoanTypeBase(SQLModel):
     name: str
-    interestrate_id: Optional[int] = Field(default=None, foreign_key="interestrate.id")
-    amount_id: Optional[int] = Field(default=None, foreign_key="amount.id")
 
 class LoanType(LoanTypeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -63,6 +63,31 @@ class Loan(LoanBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     borrower: Optional["Borrower"] = Relationship(back_populates="loan")
     loantype: Optional[LoanType] = Relationship(back_populates="loans")
+    
+class LoanTypeCreate(LoanTypeBase):
+    pass
+
+class InterestTypeCreate(InterestBase):
+    pass
+
+class CreateAmount(AmountBase):
+    pass
+    
+class LoanTypeRead(LoanTypeBase):
+    id: int
+    interestrate: List[InterestRate]
+    amount: List[Amount]
+    # loans: List["Loan"]
+    
+class AmountRead(AmountBase):
+    id: int
+    loantype: LoanType
+    
+class InterestRateRead(InterestBase):
+    id: int
+    loantypes: LoanType
+    
+    
     
     
 

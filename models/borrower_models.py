@@ -42,9 +42,11 @@ class CustomerCreate(SQLModel):
     phone_number: str
     
 class CustomerRegister(SQLModel):
-    email: str
+    email: EmailStr
     phone_number: str
     username: str
     password: str
     
-    
+class CustomerLogin(SQLModel):
+    username: str
+    password: str

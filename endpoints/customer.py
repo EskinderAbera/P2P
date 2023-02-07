@@ -1,18 +1,18 @@
 from fastapi import APIRouter, HTTPException
 from database import session
 from sqlmodel import select
-from models.borrower_models import CustomerCreate, Borrower, CustomerRegister
+from models.borrower_models import CustomerCreate, Borrower, CustomerRegister, CustomerLogin
 from models.lender_models import Lender
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_201_CREATED, HTTP_409_CONFLICT
-from repos.customer_repos import select_borrower, select_borrowers, select_lenders, select_lender
+from repos.customer_repos import select_borrower, select_lender, select_customers
 from auth.auth import AuthHandler
 
 customer_router = APIRouter()
 auth_handler = AuthHandler()
 
 
-@customer_router.post('/customer/create/')
+@customer_router.post('/customer/create/', tags=['customers'])
 async def customer_create(customer: CustomerCreate):
     if customer.customer_type == 'BORROWER':
         statement = select(Borrower).where(Borrower.phone_number == customer.phone_number)
@@ -39,28 +39,30 @@ async def customer_create(customer: CustomerCreate):
             return JSONResponse("user already exist!", status_code=HTTP_409_CONFLICT) 
         
 
-@customer_router.put('/borrower/register/')
+@customer_router.put('/borrower/register/', tags=['customers'])
 async def borrower_register(customer: CustomerRegister):
-    borrowers = await select_borrowers()
+    borrow = await select_customers(customer)
     
-    if any(borrower.username == customer.username or borrower.email == customer.email for borrower in borrowers):
+    if borrow:
         raise HTTPException(status_code=400, detail="email and username must be unique")
+        
     borrower = await select_borrower(customer.phone_number)
-    hashed_pwd = auth_handler.get_password_hash(customer.password)
+    update_borrower = customer.dict(exclude_unset=True)
     for key, value in update_borrower.items():
         setattr(borrower, key, value)
-    update_borrower = customer.dict(exclude_unset=True)
+    hashed_pwd = auth_handler.get_password_hash(customer.password)
     borrower.password = hashed_pwd
     session.add(borrower)
     session.commit()
     return JSONResponse("success", status_code=HTTP_201_CREATED)
 
-@customer_router.put('/lender/register/')
+@customer_router.put('/lender/register/', tags=['customers'])
 async def lender_register(customer: CustomerRegister):
-    lenders = await select_lenders()
+    lender = await select_customers(customer)
     
-    if any(lender.username == customer.username or lender.email == customer.email for lender in lenders):
+    if lender:
         raise HTTPException(status_code=400, detail="email and username must be unique")
+       
     lender = await select_lender(customer.phone_number)
     update_lender = customer.dict(exclude_unset=True)
     for key, value in update_lender.items():
@@ -71,9 +73,26 @@ async def lender_register(customer: CustomerRegister):
     session.commit()
     return JSONResponse("success", status_code=HTTP_201_CREATED)
 
-
+@customer_router.post('/customer/login/', tags=['customers'])
+async def login(customer: CustomerLogin):
+    borrower = await select_customers(customer)
+    if borrower["userType"] == "BORROWER":
+        statement = select(Borrower).where(Borrower.username==customer.username)
+        res = session.exec(statement).first()
+        verified = auth_handler.verify_password(customer.password, res.password)
+        if not verified:
+            raise HTTPException(status_code=401, detail='Invalid username and/or password')
+        return JSONResponse("success", status_code=HTTP_201_CREATED)
+    elif borrower["userType"] == "LENDER":
+        statement = select(Lender).where(Lender.username==customer.username)
+        res = session.exec(statement).first()
+        verified = auth_handler.verify_password(customer.password, res.password)
+        if not verified:
+            raise HTTPException(status_code=401, detail='Invalid username and/or password')
+        return JSONResponse("success", status_code=HTTP_201_CREATED)
+    else:
+        raise HTTPException(status_code=401, detail='Invalid username and/or password')
         
-    
 # @user_router.post('/user/userCreate/')
 # async def userCreate(user: UserCreate):
 #     with Session(engine) as session:
