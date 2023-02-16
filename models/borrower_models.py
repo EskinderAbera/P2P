@@ -50,3 +50,10 @@ class CustomerRegister(SQLModel):
 class CustomerLogin(SQLModel):
     username: str
     password: str
+    
+class BorrowerRead(CustomerBase):
+    id: int
+    country: str
+    city: Optional[str]
+    credit_score: float
+    isMarried: bool

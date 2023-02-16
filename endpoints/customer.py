@@ -41,9 +41,8 @@ async def customer_create(customer: CustomerCreate):
 
 @customer_router.put('/borrower/register/', tags=['customers'])
 async def borrower_register(customer: CustomerRegister):
-    borrow = await select_customers(customer)
-    
-    if borrow:
+    borrow = await select_customers(customer.username)
+    if not borrow['userType'] == 'wrong':
         raise HTTPException(status_code=400, detail="email and username must be unique")
         
     borrower = await select_borrower(customer.phone_number)
@@ -60,7 +59,7 @@ async def borrower_register(customer: CustomerRegister):
 async def lender_register(customer: CustomerRegister):
     lender = await select_customers(customer)
     
-    if lender:
+    if not lender['userType'] == 'wrong':
         raise HTTPException(status_code=400, detail="email and username must be unique")
        
     lender = await select_lender(customer.phone_number)

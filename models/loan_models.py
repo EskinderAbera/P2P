@@ -2,8 +2,8 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, TYPE_CHECKING, List
 from enum import Enum as Enum_
 
-if TYPE_CHECKING:
-    from models.borrower_models import Borrower
+# if TYPE_CHECKING:
+from models.borrower_models import Borrower, BorrowerRead
     
     
 class Enum(Enum_):
@@ -86,6 +86,14 @@ class AmountRead(AmountBase):
 class InterestRateRead(InterestBase):
     id: int
     loantypes: LoanType
+    
+class LoanCreate(LoanBase):
+    pass
+
+class LoanRead(LoanBase):
+    id: int
+    borrower: Optional[BorrowerRead]
+    loantype: Optional[LoanTypeRead]
     
     
     

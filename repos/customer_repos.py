@@ -28,37 +28,14 @@ async def select_lenders():
         res = session.exec(statement).all()
         return res
     
-async def select_customers(customer):
+async def select_customers(username):
     borrowers = await select_borrowers()
     lenders = await select_lenders()
     
-    if any(lender.username == customer.username for lender in lenders):
+    if any(lender.username == username for lender in lenders):
         return {"userType": "LENDER"}
     
-    elif any(borrower.username == customer.username for borrower in borrowers):
+    elif any(borrower.username == username for borrower in borrowers):
         return {"userType": "BORROWER"}
     else: 
         return {"userType": "wrong"}
-
-# async def select_all_users():
-#     with Session(engine) as session:
-#         statement = select(User)
-#         res = session.exec(statement).all()
-#         return res
-    
-# async def select_user(phone):
-#     with Session(engine) as session:
-#         statement = select(User).where(User.phone_number == phone)
-#         res = session.exec(statement).first()
-#         return res
-    
-# async def find_user(name):
-#     with Session(engine) as session:
-#         statement = select(User).where(User.username == name)
-#         return session.exec(statement).first()
-    
-# async def find_borrower(user_id):
-#     with Session(engine) as session:
-#         statement = select(Borrower).where(Borrower.user_id == user_id)
-#         res = session.exec(statement).first()
-#         return res

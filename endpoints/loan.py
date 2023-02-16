@@ -6,6 +6,7 @@ from auth.auth import AuthHandler
 from starlette.status import HTTP_201_CREATED, HTTP_409_CONFLICT
 from starlette.responses import JSONResponse
 from typing import List
+from repos.loan_repos import check_loan
 
 loan_router = APIRouter()
 auth_handler = AuthHandler()
@@ -37,7 +38,7 @@ async def create_amount(amount: CreateAmount):
     statement = select(Amount).where(Amount.loantype_id == amount.loantype_id)
     res = session.exec(statement).first()
     if res:
-        raise HTTPException(detail="Interest Rate exist!", status_code=HTTP_409_CONFLICT)
+        raise HTTPException(detail="Amount Rate exist!", status_code=HTTP_409_CONFLICT)
     amount = Amount(min=amount.min, max=amount.max, loantype_id=amount.loantype_id)
     session.add(amount)
     session.commit()
@@ -61,5 +62,18 @@ async def get_loantype():
     res = session.exec(statement).all()
     return res
 
+@loan_router.post("/loan/create/", tags=['loans'])
+async def create_loan(loan: LoanCreate):
+    lo = await check_loan(loan.loantype_id)
+    if lo:
+        raise HTTPException(detail="Loan Exist!", status_code=HTTP_409_CONFLICT)
+    loan_db = Loan.from_orm(loan)
+    session.add(loan_db)
+    session.commit()
+    return JSONResponse("success", status_code=HTTP_201_CREATED)
 
+@loan_router.get("/loan/getloans", tags=['loans'], response_model=List[LoanRead])
+async def get_loans():
+    loans = session.exec(select(Loan)).all()
+    return loans
     
