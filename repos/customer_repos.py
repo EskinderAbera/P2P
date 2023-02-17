@@ -1,41 +1,27 @@
 from sqlmodel import Session, select
 from database import engine
-from models.borrower_models import Borrower
-from models.lender_models import Lender
+from models.customer_models import Borrower, Customer
+from database import session
 
-
-async def select_borrower(phone_number):
+async def select_all_customers():
     with Session(engine) as session:
-        statement = select(Borrower).where(Borrower.phone_number == phone_number)
-        res = session.exec(statement).first()
-        return res
-    
-async def select_borrowers():
-     with Session(engine) as session:
-        statement = select(Borrower)
+        statement = select(Customer)
         res = session.exec(statement).all()
         return res
     
-async def select_lender(phone_number):
+async def select_customer(phone):
     with Session(engine) as session:
-        statement = select(Lender).where(Lender.phone_number == phone_number)
+        statement = select(Customer).where(Customer.phone_number == phone)
         res = session.exec(statement).first()
         return res
     
-async def select_lenders():
-     with Session(engine) as session:
-        statement = select(Lender)
-        res = session.exec(statement).all()
-        return res
+async def find_customer(username):
+    statement = select(Customer).where(Customer.username == username)
+    res = session.exec(statement).first()
+    return res
     
-async def select_customers(username):
-    borrowers = await select_borrowers()
-    lenders = await select_lenders()
-    
-    if any(lender.username == username for lender in lenders):
-        return {"userType": "LENDER"}
-    
-    elif any(borrower.username == username for borrower in borrowers):
-        return {"userType": "BORROWER"}
-    else: 
-        return {"userType": "wrong"}
+# async def find_borrower(user_id):
+#     with Session(engine) as session:
+#         statement = select(Borrower).where(Borrower.customer_id == user_id)
+#         res = session.exec(statement).first()
+#         return res

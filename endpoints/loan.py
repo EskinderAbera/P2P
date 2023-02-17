@@ -44,19 +44,19 @@ async def create_amount(amount: CreateAmount):
     session.commit()
     return JSONResponse("success", status_code=HTTP_201_CREATED)
 
-@loan_router.get("/loan/getloan", tags=['loans'], response_model=List[LoanTypeRead])
+@loan_router.get("/loan/loantype", tags=['loans'], response_model=List[LoanTypeRead])
 async def get_loantype():
     statement = select(LoanType)
     res = session.exec(statement).all()
     return res
 
-@loan_router.get("/loan/getamount", tags=['loans'], response_model=List[AmountRead])
+@loan_router.get("/loan/amount", tags=['loans'], response_model=List[AmountRead])
 async def get_loantype():
     statement = select(Amount)
     res = session.exec(statement).all()
     return res
 
-@loan_router.get("/loan/getinterest", tags=['loans'], response_model=List[InterestRateRead])
+@loan_router.get("/loan/interestrate", tags=['loans'], response_model=List[InterestRateRead])
 async def get_loantype():
     statement = select(InterestRate)
     res = session.exec(statement).all()
@@ -64,15 +64,20 @@ async def get_loantype():
 
 @loan_router.post("/loan/create/", tags=['loans'])
 async def create_loan(loan: LoanCreate):
-    lo = await check_loan(loan.loantype_id)
-    if lo:
+    lo = await check_loan(loan)
+    if lo['error'] == 'exist':
         raise HTTPException(detail="Loan Exist!", status_code=HTTP_409_CONFLICT)
-    loan_db = Loan.from_orm(loan)
-    session.add(loan_db)
-    session.commit()
-    return JSONResponse("success", status_code=HTTP_201_CREATED)
+    elif lo['error'] == 'interest':
+        raise HTTPException(detail="range between interest!", status_code=HTTP_409_CONFLICT)
+    elif lo['error'] == 'amount':
+        raise HTTPException(detail="range between amount!", status_code=HTTP_409_CONFLICT)
+    else:
+        loan_db = Loan.from_orm(loan)
+        session.add(loan_db)
+        session.commit()
+        return JSONResponse("success", status_code=HTTP_201_CREATED)
 
-@loan_router.get("/loan/getloans", tags=['loans'], response_model=List[LoanRead])
+@loan_router.get("/loan/loans", tags=['loans'], response_model=List[LoanRead])
 async def get_loans():
     loans = session.exec(select(Loan)).all()
     return loans

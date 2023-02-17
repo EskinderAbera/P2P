@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from endpoints.customer import customer_router
-from endpoints.users import user_router
 from endpoints.loan import loan_router
+from endpoints.users import user_router
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 

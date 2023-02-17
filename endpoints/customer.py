@@ -1,194 +1,82 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from database import session
 from sqlmodel import select
-from models.borrower_models import CustomerCreate, Borrower, CustomerRegister, CustomerLogin
-from models.lender_models import Lender
+from models.customer_models import CustomerCreate, Borrower, CustomerRegister, CustomerLogin, Customer, CustomerTypes, Lender,  CustomerRead
 from starlette.responses import JSONResponse
-from starlette.status import HTTP_201_CREATED, HTTP_409_CONFLICT
-from repos.customer_repos import select_borrower, select_lender, select_customers
+from starlette.status import HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_200_OK, HTTP_404_NOT_FOUND, HTTP_401_UNAUTHORIZED
+from models.loan_models import Loan, LoanRead
+from repos.customer_repos import select_customer, find_customer
 from auth.auth import AuthHandler
+from typing import List
 
 customer_router = APIRouter()
 auth_handler = AuthHandler()
 
 
 @customer_router.post('/customer/create/', tags=['customers'])
-async def customer_create(customer: CustomerCreate):
-    if customer.customer_type == 'BORROWER':
-        statement = select(Borrower).where(Borrower.phone_number == customer.phone_number)
-        get_user = session.execute(statement).first()
-        
-        if not get_user:
-            new_borrower = Borrower(phone_number=customer.phone_number, customer_type=customer.customer_type)
-            session.add(new_borrower)
+async def userCreate(customer: CustomerCreate):
+    statement = select(Customer).where(Customer.phone_number == customer.phone_number)
+    getuser = session.execute(statement).first()
+
+    if not getuser:
+        newUser = Customer(phone_number=customer.phone_number,
+                        customer_type=customer.customer_type)
+        if customer.customer_type == CustomerTypes.BORROWER:
+            borrower = Borrower(customer=newUser)
+            session.add(borrower)
             session.commit()
-            return JSONResponse('success', status_code = 200)
+            return JSONResponse('success', status_code=200)
         else:
-           return JSONResponse("user already exist!", status_code=HTTP_409_CONFLICT)
-       
-    else: 
-        statement = select(Lender).where(Lender.phone_number == customer.phone_number)
-        get_user = session.execute(statement).first()
-        
-        if not get_user:
-            new_lender = Lender(phone_number=customer.phone_number, customer_type=customer.customer_type)
-            session.add(new_lender)
+            lender = Lender(customer=newUser)
+            session.add(lender)
             session.commit()
-            return JSONResponse('success', status_code = 200)
-        else:
-            return JSONResponse("user already exist!", status_code=HTTP_409_CONFLICT) 
-        
+            return JSONResponse('success', status_code=HTTP_201_CREATED)
+    return JSONResponse("user already exist!", status_code=HTTP_409_CONFLICT)
 
-@customer_router.put('/borrower/register/', tags=['customers'])
-async def borrower_register(customer: CustomerRegister):
-    borrow = await select_customers(customer.username)
-    if not borrow['userType'] == 'wrong':
-        raise HTTPException(status_code=400, detail="email and username must be unique")
-        
-    borrower = await select_borrower(customer.phone_number)
-    update_borrower = customer.dict(exclude_unset=True)
-    for key, value in update_borrower.items():
-        setattr(borrower, key, value)
-    hashed_pwd = auth_handler.get_password_hash(customer.password)
-    borrower.password = hashed_pwd
-    session.add(borrower)
-    session.commit()
-    return JSONResponse("success", status_code=HTTP_201_CREATED)
-
-@customer_router.put('/lender/register/', tags=['customers'])
-async def lender_register(customer: CustomerRegister):
-    lender = await select_customers(customer)
-    
-    if not lender['userType'] == 'wrong':
-        raise HTTPException(status_code=400, detail="email and username must be unique")
-       
-    lender = await select_lender(customer.phone_number)
-    update_lender = customer.dict(exclude_unset=True)
-    for key, value in update_lender.items():
-        setattr(lender, key, value)
-    hashed_pwd = auth_handler.get_password_hash(customer.password)
-    lender.password = hashed_pwd
-    session.add(lender)
-    session.commit()
-    return JSONResponse("success", status_code=HTTP_201_CREATED)
-
-@customer_router.post('/customer/login/', tags=['customers'])
-async def login(customer: CustomerLogin):
-    borrower = await select_customers(customer)
-    if borrower["userType"] == "BORROWER":
-        statement = select(Borrower).where(Borrower.username==customer.username)
+@customer_router.put('/customer/register/', tags=['customers'])
+async def customer_register(customer: CustomerRegister):
+    check_customer = await select_customer(customer.phone_number)
+    if check_customer:
+        statement = select(Customer).where(Customer.username == customer.username)
         res = session.exec(statement).first()
-        verified = auth_handler.verify_password(customer.password, res.password)
-        if not verified:
-            raise HTTPException(status_code=401, detail='Invalid username and/or password')
-        return JSONResponse("success", status_code=HTTP_201_CREATED)
-    elif borrower["userType"] == "LENDER":
-        statement = select(Lender).where(Lender.username==customer.username)
-        res = session.exec(statement).first()
-        verified = auth_handler.verify_password(customer.password, res.password)
-        if not verified:
-            raise HTTPException(status_code=401, detail='Invalid username and/or password')
-        return JSONResponse("success", status_code=HTTP_201_CREATED)
+        if res:
+            raise HTTPException(status_code=HTTP_409_CONFLICT, detail="username must be unique")
+        update_customer = customer.dict(exclude_unset=True)
+        for key, value in update_customer.items():
+            setattr(check_customer, key, value)
+        hashed_pwd = auth_handler.get_password_hash(customer.password)
+        check_customer.password = hashed_pwd
+        session.add(check_customer)
+        session.commit()
+        return JSONResponse("success", status_code=HTTP_200_OK)
     else:
-        raise HTTPException(status_code=401, detail='Invalid username and/or password')
-        
-# @user_router.post('/user/userCreate/')
-# async def userCreate(user: UserCreate):
-#     with Session(engine) as session:
-#         statement = select(User).where(User.phone_number == user.phone_number)
-#         getuser = session.execute(statement).first()
-        
-#         if not getuser:
-#             newUser = User(phone_number=user.phone_number, userType=user.userType)
-#             if user.userType == UserType.borrower:
-#                 borrower = Borrower(user=newUser)
-#                 session.add(borrower)
-#                 session.commit()
-#                 session.refresh(borrower)
-#                 return JSONResponse('success', status_code = 200)
-#             else:
-#                 lender = Lender(user=newUser)
-#                 session.add(lender)
-#                 session.commit()
-#                 session.refresh(lender)
-#                 return JSONResponse('success', status_code = HTTP_201_CREATED)
-#         return JSONResponse("user already exist!", status_code=HTTP_409_CONFLICT)
+        return JSONResponse("user does not exist!", status_code=HTTP_404_NOT_FOUND)
     
-# @user_router.put('/user/register/')
-# async def userRegister(user: UserRegister):
-#     with Session(engine) as session:
-#         users = await select_all_users()
-#         if any(x.username == user.username for x in users):
-#             raise HTTPException(status_code=400, detail='Username is taken')
-#         us = await select_user(user.phone_number)
-#         hashed_pwd = auth_handler.get_password_hash(user.password)
-#         user.password = hashed_pwd
-#         user_data = user.dict(exclude_unset=True)
-#         for key, value in user_data.items():
-#             setattr(us, key, value)
-#         session.add(us)
-#         session.commit()
-#         statement = select(Borrower).where(Borrower.user_id == us.id)
-#         res = session.exec(statement).first()
-#         count = 0
-#         for key, value in res:
-#             if value is not None:
-#                 count = count + 1
-#         res.profile_status = (count/6) * 100
-#         session.add(res)
-#         session.commit()
-#         return JSONResponse("success", status_code=HTTP_201_CREATED)
+@customer_router.post('/customer/login/', tags=['customers'])
+async def customer_login(customer: CustomerLogin):
+    check_customer = await find_customer(customer.username)
+    if check_customer:
+       verified = auth_handler.verify_password(customer.password, check_customer.password) 
+       if not verified:
+           raise HTTPException(status_code=401, detail='Invalid username and/or password')
+       token = auth_handler.encode_token(check_customer.id)
+       return {'token': token}
+    return JSONResponse('Invalid username and/or password', status_code=HTTP_401_UNAUTHORIZED)
 
-# @user_router.post('/user/login/')
-# async def userLogin(user: UserLogin):
-#     user_found = await find_user(user.username)
+@customer_router.get('/customer/me', tags=['customers'], response_model= CustomerRead)
+async def get_current_customer(customer: Customer = Depends(auth_handler.get_current_user)):
+    statement = select(Customer).where(Customer.id == customer)
+    return session.exec(statement).first()
+
+@customer_router.get('/customer/loan', tags=['customers'], response_model=List[LoanRead])
+async def get_customer_loans(customer: Customer = Depends(auth_handler.get_current_user)):
+    statement = select(Borrower).join(Customer).where(Customer.id == customer)
+    res = session.exec(statement).first()
+    if res:
+        statement = select(Loan).join(Borrower).where(Borrower.id == res.id)
+        res = session.exec(statement).all()
+        return res
     
-#     if not user_found:
-#         raise HTTPException(status_code=401, detail='Invalid username and/or password')
-#     verified = auth_handler.verify_password(user.password, user_found.password)
-#     if not verified:
-#         raise HTTPException(status_code=401, detail='Invalid username and/or password')
-#     with Session(engine) as session:
-#         statement = select(Borrower).where(Borrower.user_id == user_found.id)
-#         borrower = session.exec(statement).first()
-#         if borrower:
-#             res = []
-#             if borrower.profile_status != 100:
-#                 for key, value in borrower:
-#                     if value == None:
-#                         res.append(key)
-#                 session.commit()
-#                 session.refresh(borrower.user)
-#                 return res      
-#             else:
-#                 return JSONResponse(borrower, status_code=200)
-            
-# @user_router.post('/user/createloan/')
-# async def add_borrowers(loan: LoanWrite):
-#     with Session(engine) as session:
-#         loan = Loan(title=loan.title, 
-#                     amount=loan.amount, 
-#                     loanType=loan.loanType, 
-#                     loanDuration=loan.loanDuration, 
-#                     borrower_id=loan.borrower_id
-#                 )
-#         session.add(loan)
-#         session.commit()
-#         session.refresh(loan)
-#         return JSONResponse('success', status_code = 200)
+    # return session.exec(select(Loan).where(Loan.))
+
     
-            
-# @user_router.get('/user/getloan')
-# async def get_borrowers():
-#     with Session(engine) as session:
-#         statement = select(Loan)
-#         borrowers = session.exec(statement).all()
-#         res = []
-#         ress = {}
-#         for borrower in borrowers:
-#             ress['fullName'] = borrower.borrowers.user.username
-#             ress['title'] = borrower.title
-#             ress['loanType'] = borrower.loanType
-#             ress['loanDuration'] = borrower.loanDuration
-#             res.append(ress)
-#         return res
