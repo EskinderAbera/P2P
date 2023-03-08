@@ -11,9 +11,9 @@ user_router = APIRouter()
 auth_handler = AuthHandler()
 
 @user_router.get('/customers/all', tags=['users'], response_model=List[CustomerRead])
-async def customers(user=Depends(auth_handler.get_current_user)):
-    if user:
-        customers = session.exec(select(Customer)).all()
-        return customers
+async def customers():
+    # if user:
+    customers = session.exec(select(Customer)).all()
+    return customers
         
     

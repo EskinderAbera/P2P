@@ -6,12 +6,10 @@ from enum import Enum as Enum_
 if TYPE_CHECKING:
     from models.loan_models import Loan
 
-
 class Enum(Enum_):
     @classmethod
     def list(cls):
         return list(map(lambda c: c.value, cls))
-
 
 class CustomerTypes(str, Enum):
     BORROWER = 'BORROWER'
